@@ -18,7 +18,7 @@ invites = {}
 invites_youtube = {
     'Yg8rWBzE6E': '1 Old',
     'FDaWWTZpWt': '2 Old',
-    'BNFCsFWkRJ': 'Skoice v3'
+    'BNFCsFWkRJ': 'Skoice v3 https://youtu.be/HF4jPrussjs'
 
 }
 
