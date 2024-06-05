@@ -16,8 +16,8 @@ bot = commands.Bot(command_prefix='/', intents=indents)
 
 invites = {}
 invites_youtube = {
-    'Yg8rWBzE6E': 'Old',
-    'FDaWWTZpWt': 'Old',
+    'Yg8rWBzE6E': '1 Old',
+    'FDaWWTZpWt': '2 Old',
     'BNFCsFWkRJ': 'Skoice v3'
 
 }
