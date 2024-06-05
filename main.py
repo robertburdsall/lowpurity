@@ -52,7 +52,7 @@ async def on_member_join(member):
     invites_after_join = await member.guild.invites()
 
     for invite in invites_before_join:
-
+#x
         if invite.uses < find_invite_by_code(invites_after_join, invite.code).uses:
             print(f"Member {member.name} Joined")
             print(f"Invite Code: {invite.code}")
