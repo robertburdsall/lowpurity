@@ -134,7 +134,7 @@ async def on_message(message):
         # leveling stuff
         XP_ADDED = random.randint(5, 21)
         if str(message.author.id) not in levels.keys():
-            levels[str(message.author.id)] = [XP_ADDED, 1, ]
+            levels[str(message.author.id)] = [XP_ADDED, 1, message.created_at.isoformat()]
             print(f'{message.author}: added to levels.json!')
             with open("levels.json", "w") as outfile:
                 json.dump(levels, outfile)
@@ -142,21 +142,24 @@ async def on_message(message):
 
         async for msg in message.channel.history():
             if msg.author == message.author and message.id != msg.id:
-                time_difference = message.created_at - msg.created_at
+                # datetime.fromisoformat(loaded_dt_string)
+                time_difference = datetime.fromisoformat(levels[str(message.author.id)][2]) - message.created_at
                 if time_difference > timedelta(minutes=5):
                     print(f'{message.author}: gained {XP_ADDED} XP!')
                     NEW_XP = levels[str(message.author.id)][0] + XP_ADDED
                     if NEW_XP > level_barriers[levels[str(message.author.id)][1] + 1]:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)] + 1]
+                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1,
+                                                          message.created_at.isoformat]
                     else:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)]]
+                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
+                                                          levels[str(message.author.id)][2]]
                     with open("levels.json", "w") as outfile:
                         json.dump(levels, outfile)
                     break
                 else:
-                    print("TIME DIFFERENCE: "+ str(time_difference))
-                    print(f'MESSAGE: {msg}')
                     break
+
+
 @bot.hybrid_command(description='test command')
 async def ping(ctx: commands.Context):
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {ctx.author}! 💬"))
@@ -170,7 +173,7 @@ async def steal(ctx: commands.Context):
         level = await mee6API.levels.get_user_level(member.id)
         if type(level) != int:
             continue
-        stats1[member.id] = [level_barriers[level - 1], level]
+        stats1[member.id] = [level_barriers[level - 1], level, "2024-06-10T06:47:17.698000+00:00"]
 
     with open("levels1.json", "w") as outfile:
         json.dump(stats1, outfile)
@@ -229,20 +232,41 @@ async def ytstats(ctx: commands.Context):
     await ctx.send(embed=embed)
 
 
-@bot.hybrid_command(description="Get your level!")
+@bot.hybrid_command(description="Get your leveling stats!")
 async def level(ctx: commands.Context):
     if str(ctx.author.id) not in levels.keys():
-        embed = discord.Embed(title=f'ERROR {ctx.author.name}', color=0xff6961)
+        embed = discord.Embed(title=f"ERROR {ctx.author.name}", color=0xff6961)
         embed.add_field(title="ERROR", value="You currently do not have a level!", inline=False)
         await ctx.send(embed=embed)
         return
-    embed = discord.Embed(title=f'{ctx.author.name} Level', color=0xff6961)
-    embed.add_field(name='Level:', value=levels.get(str(ctx.author.id))[1], inline=True)
-    embed.add_field(name='XP:', value=levels.get(str(ctx.author.id))[0], inline=True)
+    embed = discord.Embed(title=f"{ctx.author.name}'s Leveling Stats!", color=0xff6961)
+    embed.add_field(name='Level:', value=levels.get(str(ctx.author.id))[1], inline=False)
+    embed.add_field(name='XP:', value=levels.get(str(ctx.author.id))[0], inline=False)
     embed.add_field(name='Next Level:',
                     value="" +
-                          str(level_barriers[levels.get(str(ctx.author.id))[0]] - levels.get(str(ctx.author.id))[1])[
-                              1] + "XP needed!", inline=True)
+                          str(level_barriers[levels.get(str(ctx.author.id))[1]] - levels.get(str(ctx.author.id))[0])
+                          + "XP needed for level **" + str(levels.get(str(ctx.author.id))[1] + 1) + "**!", inline=False)
+    await ctx.send(embed=embed)
+
+
+@bot.hybrid_command(description="Check out the leveling leaderboard!")
+async def leaderboard(ctx: commands.Context):
+    lb = sorted(levels, key=levels.get, reverse=True)
+
+    print(lb)
+
+    embed = discord.Embed(title=f"{ctx.guild.name}'s Chat Leaderboard!", color=0xff6961)
+    embed.add_field(name=f'#1 {await bot.fetch_user(lb[0])} ', value="x", inline=False)
+    embed.add_field(name=f'#2 {await bot.fetch_user(lb[1])} ', value="x", inline=False)
+    embed.add_field(name=f'#3 {await bot.fetch_user(lb[2])} ', value="x", inline=False)
+    embed.add_field(name=f'#4 {await bot.fetch_user(lb[3])} ', value="x", inline=False)
+    embed.add_field(name=f'#5 {await bot.fetch_user(lb[4])} ', value="x", inline=False)
+    embed.add_field(name=f'#6 {await bot.fetch_user(lb[5])} ', value="x", inline=False)
+    embed.add_field(name=f'#7 {await bot.fetch_user(lb[6])} ', value="x", inline=False)
+    embed.add_field(name=f'#8 {await bot.fetch_user(lb[7])} ', value="x", inline=False)
+    embed.add_field(name=f'#9 {await bot.fetch_user(lb[8])} ', value="x", inline=False)
+    embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ', value="x", inline=False)
+    embed.add_field(name=f'Your Position:', value=f'{lb.index(str(ctx.author.id))}', inline=False)
 
     await ctx.send(embed=embed)
 
