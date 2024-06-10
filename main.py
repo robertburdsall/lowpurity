@@ -42,7 +42,7 @@ with open('levels.json', 'r') as f:
 levels = json.loads(json_data)
 print(levels)
 
-# string userid : [int xp, int level]
+# string userid : [int xp, int level, int time]
 
 level_barriers = [40]
 # format the barriers for the levels
@@ -130,32 +130,33 @@ async def on_message(message):
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {message.author}! 💬"))
 
     if message.channel.id in LEVEL_UP_CHANNELS:
-        # string userid : [int xp, int level]
+        # string userid : [int xp, int level, int time]
         # leveling stuff
         XP_ADDED = random.randint(5, 21)
         if str(message.author.id) not in levels.keys():
-            levels[str(message.author.id)] = [XP_ADDED, 1]
+            levels[str(message.author.id)] = [XP_ADDED, 1, ]
             print(f'{message.author}: added to levels.json!')
             with open("levels.json", "w") as outfile:
                 json.dump(levels, outfile)
             return
 
-# crap no work fixie tomorrow
         async for msg in message.channel.history():
             if msg.author == message.author and message.id != msg.id:
                 time_difference = message.created_at - msg.created_at
-                print(time_difference)
                 if time_difference > timedelta(minutes=5):
                     print(f'{message.author}: gained {XP_ADDED} XP!')
-                    NEW_XP = levels[str(message.author.id)] = levels[str(message.author.id)][0] + XP_ADDED
+                    NEW_XP = levels[str(message.author.id)][0] + XP_ADDED
                     if NEW_XP > level_barriers[levels[str(message.author.id)][1] + 1]:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1]
+                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)] + 1]
                     else:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1]]
+                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)]]
                     with open("levels.json", "w") as outfile:
                         json.dump(levels, outfile)
-
-
+                    break
+                else:
+                    print("TIME DIFFERENCE: "+ str(time_difference))
+                    print(f'MESSAGE: {msg}')
+                    break
 @bot.hybrid_command(description='test command')
 async def ping(ctx: commands.Context):
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {ctx.author}! 💬"))
@@ -166,11 +167,15 @@ async def ping(ctx: commands.Context):
 async def steal(ctx: commands.Context):
     stats1 = {}
     for member in ctx.guild.members:
-        level = await mee6API.levels.get_user_level()
+        level = await mee6API.levels.get_user_level(member.id)
+        if type(level) != int:
+            continue
         stats1[member.id] = [level_barriers[level - 1], level]
 
     with open("levels1.json", "w") as outfile:
-        json.dump(levels, outfile)
+        json.dump(stats1, outfile)
+
+    await ctx.send('data saved to /levels1.json')
 
 
 @bot.hybrid_command(description='Get invite codes & their uses')
