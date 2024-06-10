@@ -269,6 +269,6 @@ async def leaderboard(ctx: commands.Context):
     embed.add_field(name=f'Your Position:', value=f'{lb.index(str(ctx.author.id))}', inline=False)
 
     await ctx.send(embed=embed)
-
+#x
 
 bot.run(TOKEN)
