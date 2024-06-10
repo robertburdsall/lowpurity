@@ -51,7 +51,7 @@ while i < 60:
     if i == 1:
         level_barriers.append(74)
     else:
-        level_barriers.append(level_barriers[i - 1] + (level_barriers[i - 1] - level_barriers[i - 2]) ** 1.0019)
+        level_barriers.append(int(level_barriers[i - 1] + (level_barriers[i - 1] - level_barriers[i - 2]) ** 1.0019))
     i += 1
 
 
@@ -142,7 +142,7 @@ async def on_message(message):
 
         async for msg in message.channel.history():
             if msg.author == message.author and message.id != msg.id:
-                # datetime.fromisoformat(loaded_dt_string)
+                # fix time difference
                 time_difference = datetime.fromisoformat(levels[str(message.author.id)][2]) - message.created_at
                 if time_difference > timedelta(minutes=5):
                     print(f'{message.author}: gained {XP_ADDED} XP!')
@@ -157,6 +157,7 @@ async def on_message(message):
                         json.dump(levels, outfile)
                     break
                 else:
+                    print(time_difference)
                     break
 
 
@@ -173,7 +174,10 @@ async def steal(ctx: commands.Context):
         level = await mee6API.levels.get_user_level(member.id)
         if type(level) != int:
             continue
-        stats1[member.id] = [level_barriers[level - 1], level, "2024-06-10T06:47:17.698000+00:00"]
+        if level == 0:
+            stats1[member.id] = [level_barriers[level], level, "2024-06-10T06:47:17.698000+00:00"]
+        else:
+            stats1[member.id] = [level_barriers[level - 1], level, "2024-06-10T06:47:17.698000+00:00"]
 
     with open("levels1.json", "w") as outfile:
         json.dump(stats1, outfile)
@@ -251,24 +255,22 @@ async def level(ctx: commands.Context):
 
 @bot.hybrid_command(description="Check out the leveling leaderboard!")
 async def leaderboard(ctx: commands.Context):
-    lb = sorted(levels, key=levels.get, reverse=True)
-
-    print(lb)
+    lb = sorted(levels.keys(), key=lambda x: levels[x][0], reverse=True)
 
     embed = discord.Embed(title=f"{ctx.guild.name}'s Chat Leaderboard!", color=0xff6961)
-    embed.add_field(name=f'#1 {await bot.fetch_user(lb[0])} ', value="x", inline=False)
-    embed.add_field(name=f'#2 {await bot.fetch_user(lb[1])} ', value="x", inline=False)
-    embed.add_field(name=f'#3 {await bot.fetch_user(lb[2])} ', value="x", inline=False)
-    embed.add_field(name=f'#4 {await bot.fetch_user(lb[3])} ', value="x", inline=False)
-    embed.add_field(name=f'#5 {await bot.fetch_user(lb[4])} ', value="x", inline=False)
-    embed.add_field(name=f'#6 {await bot.fetch_user(lb[5])} ', value="x", inline=False)
-    embed.add_field(name=f'#7 {await bot.fetch_user(lb[6])} ', value="x", inline=False)
-    embed.add_field(name=f'#8 {await bot.fetch_user(lb[7])} ', value="x", inline=False)
-    embed.add_field(name=f'#9 {await bot.fetch_user(lb[8])} ', value="x", inline=False)
-    embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ', value="x", inline=False)
-    embed.add_field(name=f'Your Position:', value=f'{lb.index(str(ctx.author.id))}', inline=False)
+    embed.add_field(name=f'#1 {await bot.fetch_user(lb[0])} ', value=f"Level **{levels.get(lb[0])[1]}**, with **{levels.get(lb[0])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#2 {await bot.fetch_user(lb[1])} ', value=f"Level **{levels.get(lb[1])[1]}**, with **{levels.get(lb[1])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#3 {await bot.fetch_user(lb[2])} ', value=f"Level **{levels.get(lb[2])[1]}**, with **{levels.get(lb[2])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#4 {await bot.fetch_user(lb[3])} ', value=f"Level **{levels.get(lb[3])[1]}**, with **{levels.get(lb[3])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#5 {await bot.fetch_user(lb[4])} ', value=f"Level **{levels.get(lb[4])[1]}**, with **{levels.get(lb[4])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#6 {await bot.fetch_user(lb[5])} ', value=f"Level **{levels.get(lb[5])[1]}**, with **{levels.get(lb[5])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#7 {await bot.fetch_user(lb[6])} ', value=f"Level **{levels.get(lb[6])[1]}**, with **{levels.get(lb[6])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#8 {await bot.fetch_user(lb[7])} ', value=f"Level **{levels.get(lb[7])[1]}**, with **{levels.get(lb[7])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#9 {await bot.fetch_user(lb[8])} ', value=f"Level **{levels.get(lb[8])[1]}**, with **{levels.get(lb[8])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ', value=f"Level **{levels.get(lb[9])[1]}**, with **{levels.get(lb[9])[0]}** XP!", inline=False)
+    embed.add_field(name=f'Your Position:', value=f'**#{lb.index(str(ctx.author.id)) +1}**, at level **{levels.get(str(ctx.author.id))[1]}** with **{levels.get(str(ctx.author.id))[0]}** XP!', inline=False)
 
     await ctx.send(embed=embed)
-#x
+
 
 bot.run(TOKEN)
