@@ -23,7 +23,7 @@ OWNER_ID = os.getenv('OWNER_ID')
 YT_API_KEY = os.getenv('YOUTUBE_API')
 youtube = build("youtube", "v3", developerKey=YT_API_KEY)
 AUDIT_LOGS_CHANNEL = 945749408555884608
-LEVEL_UP_CHANNELS = [932549351585251338]
+LEVEL_UP_CHANNEL = 932549351585251338
 
 bot = commands.Bot(command_prefix='/', intents=indents)
 
@@ -129,36 +129,33 @@ async def on_message(message):
         return
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {message.author}! 💬"))
 
-    if message.channel.id in LEVEL_UP_CHANNELS:
-        # string userid : [int xp, int level, int time]
-        # leveling stuff
-        XP_ADDED = random.randint(5, 21)
-        if str(message.author.id) not in levels.keys():
-            levels[str(message.author.id)] = [XP_ADDED, 1, message.created_at.isoformat()]
-            print(f'{message.author}: added to levels.json!')
-            with open("levels.json", "w") as outfile:
-                json.dump(levels, outfile)
-            return
+    # string userid : [int xp, int level, int time]
+    # leveling stuff
+    XP_ADDED = random.randint(5, 21)
+    print(f"XP ADDED: {XP_ADDED}")
+    if str(message.author.id) not in levels.keys():
+        levels[str(message.author.id)] = [XP_ADDED, 1, message.created_at.isoformat()]
+        with open("levels.json", "w") as outfile:
+            json.dump(levels, outfile)
+        return
 
-        async for msg in message.channel.history():
-            if msg.author == message.author and message.id != msg.id:
-                # fix time difference
-                time_difference = datetime.fromisoformat(levels[str(message.author.id)][2]) - message.created_at
-                if time_difference > timedelta(minutes=5):
-                    print(f'{message.author}: gained {XP_ADDED} XP!')
-                    NEW_XP = levels[str(message.author.id)][0] + XP_ADDED
-                    if NEW_XP > level_barriers[levels[str(message.author.id)][1] + 1]:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1,
-                                                          message.created_at.isoformat]
-                    else:
-                        levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
-                                                          levels[str(message.author.id)][2]]
-                    with open("levels.json", "w") as outfile:
-                        json.dump(levels, outfile)
-                    break
-                else:
-                    print(time_difference)
-                    break
+    time_object = datetime.fromisoformat(levels[str(message.author.id)][2]) - message.created_at
+    time_difference = abs(time_object.total_seconds() / 60)
+    if time_difference >= 5:
+        NEW_XP = levels[str(message.author.id)][0] + XP_ADDED
+        if NEW_XP > level_barriers[levels[str(message.author.id)][1] + 1]:
+            levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1,
+                                              message.created_at.isoformat()]
+
+        else:
+            levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
+                                              message.created_at.isoformat()]
+
+            embed = discord.Embed()
+            bot.get_channel(AUDIT_LOGS_CHANNEL).send(embed=embed)
+
+        with open("levels.json", "w") as outfile:
+            json.dump(levels, outfile)
 
 
 @bot.hybrid_command(description='test command')
@@ -166,7 +163,10 @@ async def ping(ctx: commands.Context):
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {ctx.author}! 💬"))
     await ctx.send('Pong!')
 
-
+# command that steals leveling data from mee6
+# can be adjusted to other servers
+# currently removed from bot to prepare for mee6 removal
+'''
 @bot.hybrid_command(description='Steal mee6 levels')
 async def steal(ctx: commands.Context):
     stats1 = {}
@@ -183,6 +183,8 @@ async def steal(ctx: commands.Context):
         json.dump(stats1, outfile)
 
     await ctx.send('data saved to /levels1.json')
+'''
+
 
 
 @bot.hybrid_command(description='Get invite codes & their uses')
