@@ -1,7 +1,6 @@
 # bot.py
 import json
 import os
-import typing
 
 import discord
 from discord.ext import commands
@@ -16,7 +15,6 @@ indents.members = True
 from mee6_py_api import API
 
 mee6API = API(932430580765839451)
-
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 OWNER_ID = os.getenv('OWNER_ID')
@@ -24,6 +22,7 @@ YT_API_KEY = os.getenv('YOUTUBE_API')
 youtube = build("youtube", "v3", developerKey=YT_API_KEY)
 AUDIT_LOGS_CHANNEL = 945749408555884608
 LEVEL_UP_CHANNEL = 932549351585251338
+POWERED_ON = datetime.now().isoformat()
 
 bot = commands.Bot(command_prefix='/', intents=indents)
 
@@ -54,6 +53,7 @@ while i < 60:
         level_barriers.append(int(level_barriers[i - 1] + (level_barriers[i - 1] - level_barriers[i - 2]) ** 1.0019))
     i += 1
 
+print(level_barriers)
 
 def get_channel_stats(channel_id):
     request = youtube.channels().list(
@@ -82,13 +82,16 @@ async def on_ready():
     await bot.tree.sync(guild=discord.Object(id=932430580765839451))
     await bot.tree.sync()
 
+    bot.get_channel(AUDIT_LOGS_CHANNEL).send(f"{bot.user} is ONLINE at **{POWERED_ON}**!")
+
+
 
 # magic code
 
 @bot.event
 async def on_member_join(member):
     channel = bot.get_channel(932430581374021674)
-    await channel.send(f':rose: {member.mention}')
+    mention_message = (f':rose: {member.mention}')
     embed = discord.Embed(title="Welcome to Highpurity's Rose Garden! :rose:",
                           description="• Read our rules at https://discord.com/channels/932430580765839451"
                                       "/932458730509979648 \n • If you need assistance, open a ticket in "
@@ -98,7 +101,7 @@ async def on_member_join(member):
                           color=0xff6961)
     embed.set_image(
         url="https://66.media.tumblr.com/d3fefcec6a466d1e66bfd4451ddc64c9/tumblr_ozbx86pCdW1w5n1g1o1_500.gif")
-    await channel.send(embed=embed)
+    await channel.send(mention_message, embed=embed)
 
     invites_before_join = invites[member.guild.id]
     invites_after_join = await member.guild.invites()
@@ -147,11 +150,25 @@ async def on_message(message):
             levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1,
                                               message.created_at.isoformat()]
 
+            embed = discord.Embed(title=f"**{message.author}** leveled up!", color=0xff6961)
+            embed.add_field(name=f"New Level", value=f" Level **{levels[str(message.author.id)][1] + 1}**!",
+                            inline=True)
+            embed.add_field(name=f"Current Stats",
+                            value=f"**{NEW_XP}** XP, with **{str(level_barriers[levels.get(str(message.author.id))[1]] -
+                                                                 levels.get(str(message.author.id))[0])}** XP needed "
+                                  f"for Level **{{levels.get(str(ctx.author.id))[1]}}**",
+                            inline=True)
+            mention_message = f":rose: {message.author.mention}'"
+            bot.get_channel(LEVEL_UP_CHANNEL).send(mention_message, embed=embed)
+
         else:
             levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
                                               message.created_at.isoformat()]
 
-            embed = discord.Embed()
+            embed = discord.Embed(title=f"**{message.author}** gained XP", color=0xff6961)
+            embed.add_field(name=f"XP Gained", value=f"**{XP_ADDED}** XP", inline=False)
+            embed.add_field(name=f"Current Stats",
+                            value=f"Level **{levels[str(message.author.id)][1]}**, with **{NEW_XP}** XP!", inline=False)
             bot.get_channel(AUDIT_LOGS_CHANNEL).send(embed=embed)
 
         with open("levels.json", "w") as outfile:
@@ -162,6 +179,7 @@ async def on_message(message):
 async def ping(ctx: commands.Context):
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(name=f"Hello {ctx.author}! 💬"))
     await ctx.send('Pong!')
+
 
 # command that steals leveling data from mee6
 # can be adjusted to other servers
@@ -184,7 +202,6 @@ async def steal(ctx: commands.Context):
 
     await ctx.send('data saved to /levels1.json')
 '''
-
 
 
 @bot.hybrid_command(description='Get invite codes & their uses')
@@ -238,6 +255,19 @@ async def ytstats(ctx: commands.Context):
     await ctx.send(embed=embed)
 
 
+@bot.hybrid_command(description="Get Highpurity's YouTube channel's stats", args="kytachipssucks")
+async def ytstats(ctx: commands.Context):
+    stats = get_channel_stats('UC9308UbLmxNEgOOeKrjrvXw')
+    subscribers = stats.get('subscriberCount')
+    view_count = stats.get('viewCount')
+    video_count = stats.get('videoCount')
+    embed = discord.Embed(title="Highpurity's Stats :rose:", color=0xff6961)
+    embed.add_field(name='Subscribers', value=subscribers, inline=True)
+    embed.add_field(name='Video Count', value=video_count, inline=True)
+    embed.add_field(name='View Count', value=view_count, inline=True)
+    await ctx.send(embed=embed)
+
+
 @bot.hybrid_command(description="Get your leveling stats!")
 async def level(ctx: commands.Context):
     if str(ctx.author.id) not in levels.keys():
@@ -260,17 +290,29 @@ async def leaderboard(ctx: commands.Context):
     lb = sorted(levels.keys(), key=lambda x: levels[x][0], reverse=True)
 
     embed = discord.Embed(title=f"{ctx.guild.name}'s Chat Leaderboard!", color=0xff6961)
-    embed.add_field(name=f'#1 {await bot.fetch_user(lb[0])} ', value=f"Level **{levels.get(lb[0])[1]}**, with **{levels.get(lb[0])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#2 {await bot.fetch_user(lb[1])} ', value=f"Level **{levels.get(lb[1])[1]}**, with **{levels.get(lb[1])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#3 {await bot.fetch_user(lb[2])} ', value=f"Level **{levels.get(lb[2])[1]}**, with **{levels.get(lb[2])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#4 {await bot.fetch_user(lb[3])} ', value=f"Level **{levels.get(lb[3])[1]}**, with **{levels.get(lb[3])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#5 {await bot.fetch_user(lb[4])} ', value=f"Level **{levels.get(lb[4])[1]}**, with **{levels.get(lb[4])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#6 {await bot.fetch_user(lb[5])} ', value=f"Level **{levels.get(lb[5])[1]}**, with **{levels.get(lb[5])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#7 {await bot.fetch_user(lb[6])} ', value=f"Level **{levels.get(lb[6])[1]}**, with **{levels.get(lb[6])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#8 {await bot.fetch_user(lb[7])} ', value=f"Level **{levels.get(lb[7])[1]}**, with **{levels.get(lb[7])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#9 {await bot.fetch_user(lb[8])} ', value=f"Level **{levels.get(lb[8])[1]}**, with **{levels.get(lb[8])[0]}** XP!", inline=False)
-    embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ', value=f"Level **{levels.get(lb[9])[1]}**, with **{levels.get(lb[9])[0]}** XP!", inline=False)
-    embed.add_field(name=f'Your Position:', value=f'**#{lb.index(str(ctx.author.id)) +1}**, at level **{levels.get(str(ctx.author.id))[1]}** with **{levels.get(str(ctx.author.id))[0]}** XP!', inline=False)
+    embed.add_field(name=f'#1 {await bot.fetch_user(lb[0])} ',
+                    value=f"Level **{levels.get(lb[0])[1]}**, with **{levels.get(lb[0])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#2 {await bot.fetch_user(lb[1])} ',
+                    value=f"Level **{levels.get(lb[1])[1]}**, with **{levels.get(lb[1])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#3 {await bot.fetch_user(lb[2])} ',
+                    value=f"Level **{levels.get(lb[2])[1]}**, with **{levels.get(lb[2])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#4 {await bot.fetch_user(lb[3])} ',
+                    value=f"Level **{levels.get(lb[3])[1]}**, with **{levels.get(lb[3])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#5 {await bot.fetch_user(lb[4])} ',
+                    value=f"Level **{levels.get(lb[4])[1]}**, with **{levels.get(lb[4])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#6 {await bot.fetch_user(lb[5])} ',
+                    value=f"Level **{levels.get(lb[5])[1]}**, with **{levels.get(lb[5])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#7 {await bot.fetch_user(lb[6])} ',
+                    value=f"Level **{levels.get(lb[6])[1]}**, with **{levels.get(lb[6])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#8 {await bot.fetch_user(lb[7])} ',
+                    value=f"Level **{levels.get(lb[7])[1]}**, with **{levels.get(lb[7])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#9 {await bot.fetch_user(lb[8])} ',
+                    value=f"Level **{levels.get(lb[8])[1]}**, with **{levels.get(lb[8])[0]}** XP!", inline=False)
+    embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ',
+                    value=f"Level **{levels.get(lb[9])[1]}**, with **{levels.get(lb[9])[0]}** XP!", inline=False)
+    embed.add_field(name=f'Your Position:',
+                    value=f'**#{lb.index(str(ctx.author.id)) + 1}**, at level **{levels.get(str(ctx.author.id))[1]}** with **{levels.get(str(ctx.author.id))[0]}** XP!',
+                    inline=False)
 
     await ctx.send(embed=embed)
 
