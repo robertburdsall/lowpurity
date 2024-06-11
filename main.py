@@ -8,12 +8,12 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 import random
 from datetime import datetime, timedelta
-from mee6_py_api import API
+#from mee6_py_api import API
 
 indents = discord.Intents.all()
 indents.members = True
 
-mee6API = API(932430580765839451)
+#mee6API = API(932430580765839451)
 load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 OWNER_ID = os.getenv('OWNER_ID')
