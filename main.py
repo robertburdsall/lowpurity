@@ -159,7 +159,7 @@ async def on_message(message):
                                   f"for Level **{{levels.get(str(ctx.author.id))[1]}}**",
                             inline=True)
             mention_message = f":rose: {message.author.mention}'"
-            bot.get_channel(LEVEL_UP_CHANNEL).send(mention_message, embed=embed)
+            await bot.get_channel(LEVEL_UP_CHANNEL).send(mention_message, embed=embed)
 
         else:
             levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
@@ -169,7 +169,7 @@ async def on_message(message):
             embed.add_field(name=f"XP Gained", value=f"**{XP_ADDED}** XP", inline=False)
             embed.add_field(name=f"Current Stats",
                             value=f"Level **{levels[str(message.author.id)][1]}**, with **{NEW_XP}** XP!", inline=False)
-            bot.get_channel(AUDIT_LOGS_CHANNEL).send(embed=embed)
+            await bot.get_channel(AUDIT_LOGS_CHANNEL).send(embed=embed)
 
         with open("levels.json", "w") as outfile:
             json.dump(levels, outfile)
