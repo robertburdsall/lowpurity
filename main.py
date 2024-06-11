@@ -8,11 +8,10 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 import random
 from datetime import datetime, timedelta
+from mee6_py_api import API
 
 indents = discord.Intents.all()
 indents.members = True
-
-from mee6_py_api import API
 
 mee6API = API(932430580765839451)
 load_dotenv()
@@ -21,7 +20,7 @@ OWNER_ID = os.getenv('OWNER_ID')
 YT_API_KEY = os.getenv('YOUTUBE_API')
 youtube = build("youtube", "v3", developerKey=YT_API_KEY)
 AUDIT_LOGS_CHANNEL = 945749408555884608
-LEVEL_UP_CHANNEL = 932549351585251338
+LEVEL_UP_CHANNEL = 939849460882767872
 POWERED_ON = datetime.now().isoformat()
 
 bot = commands.Bot(command_prefix='/', intents=indents)
@@ -39,8 +38,6 @@ with open('levels.json', 'r') as f:
     json_data = f.read()
 
 levels = json.loads(json_data)
-print(levels)
-
 # string userid : [int xp, int level, int time]
 
 level_barriers = [40]
@@ -53,7 +50,6 @@ while i < 60:
         level_barriers.append(int(level_barriers[i - 1] + (level_barriers[i - 1] - level_barriers[i - 2]) ** 1.0019))
     i += 1
 
-print(level_barriers)
 
 def get_channel_stats(channel_id):
     request = youtube.channels().list(
@@ -82,8 +78,8 @@ async def on_ready():
     await bot.tree.sync(guild=discord.Object(id=932430580765839451))
     await bot.tree.sync()
 
-    bot.get_channel(AUDIT_LOGS_CHANNEL).send(f"{bot.user} is ONLINE at **{POWERED_ON}**!")
-
+    channel = bot.get_channel(AUDIT_LOGS_CHANNEL)
+    await channel.send(f"{bot.user} is ONLINE at **{POWERED_ON}**!")
 
 
 # magic code
@@ -91,7 +87,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     channel = bot.get_channel(932430581374021674)
-    mention_message = (f':rose: {member.mention}')
+    mention_message = f':rose: {member.mention}'
     embed = discord.Embed(title="Welcome to Highpurity's Rose Garden! :rose:",
                           description="• Read our rules at https://discord.com/channels/932430580765839451"
                                       "/932458730509979648 \n • If you need assistance, open a ticket in "
@@ -135,7 +131,6 @@ async def on_message(message):
     # string userid : [int xp, int level, int time]
     # leveling stuff
     XP_ADDED = random.randint(5, 21)
-    print(f"XP ADDED: {XP_ADDED}")
     if str(message.author.id) not in levels.keys():
         levels[str(message.author.id)] = [XP_ADDED, 1, message.created_at.isoformat()]
         with open("levels.json", "w") as outfile:
@@ -146,20 +141,21 @@ async def on_message(message):
     time_difference = abs(time_object.total_seconds() / 60)
     if time_difference >= 5:
         NEW_XP = levels[str(message.author.id)][0] + XP_ADDED
-        if NEW_XP > level_barriers[levels[str(message.author.id)][1] + 1]:
+        if NEW_XP > level_barriers[levels[str(message.author.id)][1]]:
             levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1] + 1,
                                               message.created_at.isoformat()]
 
             embed = discord.Embed(title=f"**{message.author}** leveled up!", color=0xff6961)
-            embed.add_field(name=f"New Level", value=f" Level **{levels[str(message.author.id)][1] + 1}**!",
+            embed.add_field(name=f"New Level", value=f" Level **{levels[str(message.author.id)][1]}**!",
                             inline=True)
             embed.add_field(name=f"Current Stats",
                             value=f"**{NEW_XP}** XP, with **{str(level_barriers[levels.get(str(message.author.id))[1]] -
                                                                  levels.get(str(message.author.id))[0])}** XP needed "
-                                  f"for Level **{{levels.get(str(ctx.author.id))[1]}}**",
+                                  f"for Level **{levels.get(str(message.author.id))[1]}**",
                             inline=True)
-            mention_message = f":rose: {message.author.mention}'"
-            await bot.get_channel(LEVEL_UP_CHANNEL).send(mention_message, embed=embed)
+            mention_message = f":rose: {message.author.mention}"
+            channel = bot.get_channel(LEVEL_UP_CHANNEL)
+            await channel.send(mention_message, embed=embed)
 
         else:
             levels[str(message.author.id)] = [NEW_XP, levels[str(message.author.id)][1],
@@ -169,7 +165,8 @@ async def on_message(message):
             embed.add_field(name=f"XP Gained", value=f"**{XP_ADDED}** XP", inline=False)
             embed.add_field(name=f"Current Stats",
                             value=f"Level **{levels[str(message.author.id)][1]}**, with **{NEW_XP}** XP!", inline=False)
-            await bot.get_channel(AUDIT_LOGS_CHANNEL).send(embed=embed)
+            channel = bot.get_channel(AUDIT_LOGS_CHANNEL)
+            await channel.send(embed=embed)
 
         with open("levels.json", "w") as outfile:
             json.dump(levels, outfile)
@@ -242,16 +239,17 @@ async def test(ctx: commands.Context):
     await ctx.send(embed=embed)
 
 
-@bot.hybrid_command(description="Get Highpurity's YouTube channel's stats", args="kytachipssucks")
-async def ytstats(ctx: commands.Context):
-    stats = get_channel_stats('UC9308UbLmxNEgOOeKrjrvXw')
-    subscribers = stats.get('subscriberCount')
-    view_count = stats.get('viewCount')
-    video_count = stats.get('videoCount')
-    embed = discord.Embed(title="Highpurity's Stats :rose:", color=0xff6961)
-    embed.add_field(name='Subscribers', value=subscribers, inline=True)
-    embed.add_field(name='Video Count', value=video_count, inline=True)
-    embed.add_field(name='View Count', value=view_count, inline=True)
+@bot.hybrid_command(description="Get the uptime of this bot!")
+async def uptime(ctx: commands.Context):
+    CURRENT_TIME = datetime.now()
+    time_difference = CURRENT_TIME - datetime.fromisoformat(POWERED_ON)
+    minutes_difference = int(time_difference.total_seconds() / 60)
+    hours_difference = int(time_difference.total_seconds() / 3600)
+    days_difference = int(time_difference.total_seconds() / 216000)
+
+    embed = discord.Embed(title=f"{bot.user}'s Uptime! :rose:",
+                          description=f"**{minutes_difference}** minutes, **{hours_difference}** hours, and **{days_difference}** days!",
+                          color=0xff6961)
     await ctx.send(embed=embed)
 
 
@@ -311,7 +309,8 @@ async def leaderboard(ctx: commands.Context):
     embed.add_field(name=f'#10 {await bot.fetch_user(lb[9])} ',
                     value=f"Level **{levels.get(lb[9])[1]}**, with **{levels.get(lb[9])[0]}** XP!", inline=False)
     embed.add_field(name=f'Your Position:',
-                    value=f'**#{lb.index(str(ctx.author.id)) + 1}**, at level **{levels.get(str(ctx.author.id))[1]}** with **{levels.get(str(ctx.author.id))[0]}** XP!',
+                    value=f'**#{lb.index(str(ctx.author.id)) + 1}**, at level **{levels.get(str(ctx.author.id))[1]}** '
+                          f'with **{levels.get(str(ctx.author.id))[0]}** XP!',
                     inline=False)
 
     await ctx.send(embed=embed)
